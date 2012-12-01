@@ -171,6 +171,7 @@ module MotionData
       end
 
       attr_accessor :relationshipName, :owner
+      attr_accessor :sectionKeyPath  # not sure exactly where this should go yet
 
       def initWithTarget(target, relationshipName:relationshipName, owner:owner)
         if initWithTarget(target)
@@ -206,6 +207,16 @@ module MotionData
         request.sortDescriptors = @sortDescriptors unless @sortDescriptors.empty?
         request
       end
+
+      def fetchedResultsController( request = fetchRequest )
+        error_ptr = Pointer.new(:object)
+        controller = NSFetchedResultsController.alloc.initWithFetchRequest( request, managedObjectContext:Context.current, sectionNameKeyPath: @sectionKeyPath, cacheName:nil)      
+        unless controller.performFetch(error_ptr)
+          raise "Error when fetching data: #{error_ptr[0].description}"
+        end
+    
+        controller
+      end   
 
       def respond_to?(method)
         !targetClass.scopeByName(method).nil? || super
@@ -246,8 +257,12 @@ module MotionData
     end
   end
 
+  # why is this duplicated here????
   class Scope
     class Model < Scope
+
+      attr_accessor :sectionKeyPath  # not sure exactly where this should go yet
+
       def set
         @sortDescriptors.empty? ? NSSet.setWithArray(array) : NSOrderedSet.orderedSetWithArray(array)
       end
@@ -268,6 +283,16 @@ module MotionData
         request.sortDescriptors = @sortDescriptors unless @sortDescriptors.empty?
         request
       end
+
+      def fetchedResultsController( request = fetchRequest )
+        error_ptr = Pointer.new(:object)
+        controller = NSFetchedResultsController.alloc.initWithFetchRequest( request, managedObjectContext:Context.current, sectionNameKeyPath: @sectionKeyPath, cacheName:nil)      
+        unless controller.performFetch(error_ptr)
+          raise "Error when fetching data: #{error_ptr[0].description}"
+        end
+    
+        controller
+      end 
 
       def method_missing(method, *args, &block)
         if scope = @target.scopes[method]

@@ -328,4 +328,61 @@ module MotionData
       scope.published.withTitle.predicate.predicateFormat.should == '(published == 1) AND title != nil'
     end
   end
+
+  describe Scope::Model do
+    before do
+      MotionData.setupCoreDataStackWithInMemoryStore
+
+      Article.new(:title => 'article1', :published => true)
+      @unpublishedArticle = Article.new(:title => 'article2', :published => false)
+      Article.new(:title => 'article3', :published => true)
+    end
+  
+    it "returns objects using predicateWithFormat and argument" do
+      scope = Scope::Model.alloc.initWithTarget(Article)
+      scope = scope.where(:published => true).sortBy(:title)
+    #  scope = scope.where('author == %@ AND published == true', argumentArray:[@author]).sortBy(:title, ascending:true)
+      scope = scope.where('author == %@ AND published == true', @author).sortBy(:title, ascending:true)
+      scope.map(&:title).should == %w{ article1 article3 }
+    end
+  end
+
+   describe Scope::Relationship do
+    before do
+      MotionData.setupCoreDataStackWithInMemoryStore
+
+      @context = Context.context
+      @context.perform do
+        @author = Author.new(:name => 'Edgar Allan Poe')
+        @article1 = Article.new(:author => @author, :title => 'article1', :published => true)
+        @article2 = Article.new(:author => @author, :title => 'article2', :published => true)
+        @article3 = Article.new(:author => @author, :title => 'article3', :published => true)
+  
+        @c1 = Citation.new(:article => @article1, :title => "The New York Times", :favorite => true, :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
+        @c2 = Citation.new(:article => @article2, :title => "Great Poetry Today", :favorite => true, :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
+              Citation.new(:article => @article3, :title => "The New Yorker",                        :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
+        @c3 = Citation.new(:article => @article3, :title => "Poetry Foundation",  :favorite => true, :timeStamp => NSDate.dateWithString("2008-01-31 12:22:26"))
+              Citation.new(:article => @article2, :title => "The New York Times",                    :timeStamp => NSDate.dateWithString("2006-01-31 12:22:26"))
+              Citation.new(:article => @article2, :title => "Poetry Today",                          :timeStamp => NSDate.dateWithString("2005-01-31 12:22:26"))
+              Citation.new(:article => @article2, :title => "Great Poetry Today",                    :timeStamp => NSDate.dateWithString("2009-01-31 12:22:26"))
+              Citation.new(:article => @article2, :title => "The Washington Post",                   :timeStamp => NSDate.dateWithString("2010-01-31 12:22:26"))
+              Citation.new(:article => @article2, :title => "PoetryMagazine.org",                    :timeStamp => NSDate.dateWithString("2011-01-31 12:22:26"))
+      end
+    end
+
+    it "returns a NSFetchRequest that is sorted by the property of a to-Many relationship" do
+      @context.perform do
+        scope = Scope::Model.alloc.initWithTarget(Citation)
+        scope = scope.where('article.author == %@ AND favorite == true', @author).sortBy(:title, ascending:true)
+=begin
+      @citations = scope.set.array  
+      @citations.each do |citation|
+        NSLog("citation=#{citation.title}")
+        end
+=end
+        scope.set.count.should == 3
+        scope.map(&:title).should == [ "Great Poetry Today", "Poetry Foundation", "The New York Times" ]
+      end
+    end
+  end
 end

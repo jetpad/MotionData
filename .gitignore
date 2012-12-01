@@ -7,4 +7,5 @@ resources/*.nib
 resources/*.momd
 resources/*.storyboardc
 examples/**/*.nib
+vendor/motion_data/ext/build-iPhoneSimulator/*.a
 tags
