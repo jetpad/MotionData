@@ -338,10 +338,9 @@ module MotionData
       Article.new(:title => 'article3', :published => true)
     end
   
-    it "returns objects using predicateWithFormat and argument" do
+    it "returns objects using single argument to where " do
       scope = Scope::Model.alloc.initWithTarget(Article)
       scope = scope.where(:published => true).sortBy(:title)
-    #  scope = scope.where('author == %@ AND published == true', argumentArray:[@author]).sortBy(:title, ascending:true)
       scope = scope.where('author == %@ AND published == true', @author).sortBy(:title, ascending:true)
       scope.map(&:title).should == %w{ article1 article3 }
     end
@@ -358,6 +357,7 @@ module MotionData
         @article2 = Article.new(:author => @author, :title => 'article2', :published => true)
         @article3 = Article.new(:author => @author, :title => 'article3', :published => true)
   
+        # example of how to initialize the time property with a date string
         @c1 = Citation.new(:article => @article1, :title => "The New York Times", :favorite => true, :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
         @c2 = Citation.new(:article => @article2, :title => "Great Poetry Today", :favorite => true, :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
               Citation.new(:article => @article3, :title => "The New Yorker",                        :timeStamp => NSDate.dateWithString("2007-01-31 12:22:26"))
@@ -370,16 +370,11 @@ module MotionData
       end
     end
 
-    it "returns a NSFetchRequest that is sorted by the property of a to-Many relationship" do
+    it "returns a NSFetchRequest that spans three objects using relationships and single argument for where" do
       @context.perform do
         scope = Scope::Model.alloc.initWithTarget(Citation)
         scope = scope.where('article.author == %@ AND favorite == true', @author).sortBy(:title, ascending:true)
-=begin
-      @citations = scope.set.array  
-      @citations.each do |citation|
-        NSLog("citation=#{citation.title}")
-        end
-=end
+
         scope.set.count.should == 3
         scope.map(&:title).should == [ "Great Poetry Today", "Poetry Foundation", "The New York Times" ]
       end

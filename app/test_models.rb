@@ -26,8 +26,6 @@ class Article
 
   scope :published, where(:published => true)
   scope :withTitle, where( value(:title) != nil ).sortBy(:title, ascending:false)
-
-#  scope :latestCitation, where( "timeStamp=citation.@max.timeStamp" ).sortBy(:timeStamp, ascending:true)
 end
 
 class Citation
