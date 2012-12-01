@@ -171,8 +171,7 @@ module MotionData
       end
 
       attr_accessor :relationshipName, :owner
-      attr_accessor :sectionKeyPath  # not sure exactly where this should go yet
-
+    
       def initWithTarget(target, relationshipName:relationshipName, owner:owner)
         if initWithTarget(target)
           @relationshipName, @owner = relationshipName, owner
@@ -208,9 +207,10 @@ module MotionData
         request
       end
 
-      def fetchedResultsController( request = fetchRequest )
+      # TODO - spec 
+      def fetchedResultsController( sectionKeyPath = nil, cacheName = nil  )
         error_ptr = Pointer.new(:object)
-        controller = NSFetchedResultsController.alloc.initWithFetchRequest( request, managedObjectContext:Context.current, sectionNameKeyPath: @sectionKeyPath, cacheName:nil)      
+        controller = NSFetchedResultsController.alloc.initWithFetchRequest( fetchRequest, managedObjectContext:Context.current, sectionNameKeyPath: sectionKeyPath, cacheName: cacheName)      
         unless controller.performFetch(error_ptr)
           raise "Error when fetching data: #{error_ptr[0].description}"
         end
@@ -257,11 +257,9 @@ module MotionData
     end
   end
 
-  # why is this duplicated here????
+  # can this duplication be removed?
   class Scope
     class Model < Scope
-
-      attr_accessor :sectionKeyPath  # not sure exactly where this should go yet
 
       def set
         @sortDescriptors.empty? ? NSSet.setWithArray(array) : NSOrderedSet.orderedSetWithArray(array)
@@ -284,9 +282,10 @@ module MotionData
         request
       end
 
-      def fetchedResultsController( request = fetchRequest )
+      # TODO - spec 
+      def fetchedResultsController( sectionKeyPath = nil, cacheName = nil )
         error_ptr = Pointer.new(:object)
-        controller = NSFetchedResultsController.alloc.initWithFetchRequest( request, managedObjectContext:Context.current, sectionNameKeyPath: @sectionKeyPath, cacheName:nil)      
+        controller = NSFetchedResultsController.alloc.initWithFetchRequest( fetchRequest, managedObjectContext:Context.current, sectionNameKeyPath: sectionKeyPath, cacheName: cacheName)      
         unless controller.performFetch(error_ptr)
           raise "Error when fetching data: #{error_ptr[0].description}"
         end
