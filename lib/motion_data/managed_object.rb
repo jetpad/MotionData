@@ -29,10 +29,20 @@ module MotionData
     class << self
 
       def new(properties = nil)
-        newInContext(Context.current, properties)
+        #newInContext(Context.current, properties)
+        
+        newInContextForName(Context.current, properties)
+      end
+
+      def newInContextForName(context, properties = nil)
+        entity = EntityDescription.insertNewObjectForEntityForName( name, inManagedObjectContext:context)
+      # entity = alloc.initWithEntity(entityDescription, insertIntoManagedObjectContext:context)
+        properties.each { |k, v| entity.send("#{k}=", v) } if properties
+        entity
       end
 
       def newInContext(context, properties = nil)
+        # This next method does not auto-release the allocation (and so it leaks for every creation 16 bytes...I think)
         entity = alloc.initWithEntity(entityDescription, insertIntoManagedObjectContext:context)
         properties.each { |k, v| entity.send("#{k}=", v) } if properties
         entity

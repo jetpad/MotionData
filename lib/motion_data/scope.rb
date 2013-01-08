@@ -163,11 +163,19 @@ module MotionData
       end
 
       def self.extendRelationshipSetWithScope(set, relationshipName:relationshipName, owner:owner)
-        set.extend SetExt
-        set.__scope__ = Relationship.alloc.initWithTarget(set,
-                                         relationshipName:relationshipName,
-                                                    owner:owner)
-        set
+
+        context = MotionData::Context.current
+
+        if context.extend_relationship
+        #  NSLog "Extend Relationship"
+      #    set.extend SetExt
+      #    set.__scope__ = Relationship.alloc.initWithTarget(set,
+      #                                     relationshipName:relationshipName,
+      #                                                owner:owner)
+      #    set
+        else
+       #   NSLog "DO NOT Extend Relationship"
+        end
       end
 
       attr_accessor :relationshipName, :owner

@@ -28,6 +28,7 @@ class Article
   scope :withTitle, where( value(:title) != nil ).sortBy(:title, ascending:false)
 end
 
+
 class Citation
   hasOne :article, :destinationEntity => Article.entityDescription, :inverse => :citation
 

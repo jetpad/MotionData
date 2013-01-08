@@ -65,9 +65,18 @@ module MotionData
       def new(parent = nil, concurrencyType = NSPrivateQueueConcurrencyType)
         context = alloc.initWithConcurrencyType(concurrencyType)
         context.parentContext = parent if parent # do NOT set `nil`
+        context.extend_relationship = true
         context
       end
-    end
+    end #self
+
+    # setting this to true will disable extending the  
+    # scoping by forwarding messages to a Scope::Relationship instance which
+    # wraps the set. This is for the sole reason of lowering the memory requirements when
+    # processing large amounts of new objects (like during import).
+    # allows the main UI context to continue to work as normally by just setting this context
+    # to true. 
+    attr_accessor :extend_relationship
 
     # Returns a new private queue context that is a child of the this context.
     #
@@ -89,9 +98,11 @@ module MotionData
     # Optionally yields the context.
     def perform(options = {}, &block)
       result = nil
-      work   = lambda do
-        Context.withCurrent(self) do
-          result = block.call(self)
+      work = lambda do
+        autorelease_pool do
+          Context.withCurrent(self) do
+            result = block.call(self)
+          end
         end
       end
       options[:background] ? performBlock(work) : performBlockAndWait(work)
@@ -99,40 +110,59 @@ module MotionData
     end
 
     # TODO return whether or not the save was a success
+    #
+    # Options:
+    #
+    # * `:reset` - If `true` the context is reset AFTER it is saved successfully.
+    #              this is to optimize memory usage (especially during large imports).
+    #    :disable_extend - If 'true' then the context relationship extension is disabled 
+    #              while the block is executing and the save is saving. 
+    #
     def transaction(options = {}, &block)
-      c = context
-      c.perform(options, &block)
-      c.perform(options) do
+      #c = context
+      extend_relationship = false if options[:disable_extend]
 
-        error_ptr = Pointer.new(:object)
-        unless c.save(error_ptr) 
-          error = error_ptr[0]
-          puts "Error when saving data: #{error.localizedDescription}"
-          if !error.userInfo['NSDetailedErrors'].nil?
-            error.userInfo['NSDetailedErrors'].each do |key, value|
-              puts "#{key}: #{value}"
-            end
-          end 
-          raise "Error when saving data: #{error.localizedDescription}"
-        end
-      end
-    end
+      perform(options, &block) if block
+      perform(options) do
 
-    def objectsInContext(*objectsFromOtherContext)
-      objectsFromOtherContext.map { |object| objectWithID(object.objectID) }
-    end
-
-    def saveChanges
       error_ptr = Pointer.new(:object)
-      unless save(error_ptr)
+      if save(error_ptr) 
+        #NSLog "Transaction SAVE was successful"
+        reset if options[:reset]
+        extend_relationship = true if options[:disable_extend]
+        #NSLog "Context was RESET" if options[:reset]
+      else
+        extend_relationship = true if options[:disable_extend]
+      
         error = error_ptr[0]
         puts "Error when saving data: #{error.localizedDescription}"
         if !error.userInfo['NSDetailedErrors'].nil?
           error.userInfo['NSDetailedErrors'].each do |key, value|
             puts "#{key}: #{value}"
           end
-        end
+        end 
         raise "Error when saving data: #{error.localizedDescription}"
+      end
+    end
+  end
+
+    def objectsInContext(*objectsFromOtherContext)
+      objectsFromOtherContext.map { |object| objectWithID(object.objectID) }
+    end
+
+    def saveChanges
+      autorelease_pool do
+        error_ptr = Pointer.new(:object)
+        unless save(error_ptr)
+          error = error_ptr[0]
+          puts "Error when saving data: #{error.localizedDescription}"
+          if !error.userInfo['NSDetailedErrors'].nil?
+            error.userInfo['NSDetailedErrors'].each do |key, value|
+              puts "#{key}: #{value}"
+            end
+          end
+          raise "Error when saving data: #{error.localizedDescription}"
+        end
       end
     end
   end
